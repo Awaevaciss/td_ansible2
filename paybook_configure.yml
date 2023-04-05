@@ -1,0 +1,93 @@
+---
+- name: Configuration des interfaces du CSR1000
+  hosts: csr1000
+  gather_facts: no
+
+  tasks:
+    - name: Configurer l'interface GigabitEthernet1 avec DHCP
+      cisco.ios.ios_l3_interfaces:
+       config:
+       - name: GigabitEthernet1
+         ipv4:
+         - dhcp: 
+             enable: yes
+
+    - name: Configurer l'interface GigabitEthernet2 avec l'adresse 192.168.2.1/24
+      cisco.ios.ios_l3_interfaces:
+       config:
+       - name: GigabitEthernet2
+         ipv4:
+         - address: 192.168.2.1/24
+          
+
+    - name: Configurer l'interface GigabitEthernet3 avec l'adresse 192.168.3.1/24
+      cisco.ios.ios_l3_interfaces:
+       config:
+       - name: GigabitEthernet3
+         ipv4:
+         - address: 192.168.3.1/24
+         
+
+    - name: Configurer l'interface GigabitEthernet4 avec l'adresse 192.168.4.1/24
+      cisco.ios.ios_l3_interfaces:
+       config:
+       - name: GigabitEthernet4
+         ipv4:
+         - address: 192.168.4.1/24         
+  
+    - name: Merge provided configuration with device configuration
+      cisco.ios.ios_interfaces:
+        config:
+        - name: GigabitEthernet2
+          description: Configured and Merged by Ansible Network
+          enabled: true
+        - name: GigabitEthernet4
+          description: Configured and Merged by Ansible Network
+          enabled: true
+
+    - name: Configuration du DHCP sur le routeur
+      cisco.ios.ios_config:
+        lines:
+          - ip dhcp pool LAN
+          - network 192.168.2.0 255.255.255.0
+          - default-router 192.168.103.203
+          - dns-server 8.8.8.8
+        parents: interface GigabitEthernet1
+
+    - name: Configurer l'interface WAN en NAT outside
+      ios_config:
+        parents: interface GigabitEthernet1
+        lines:
+          - ip nat outside
+
+    - name: Configurer les interfaces LAN en NAT inside
+      ios_config:
+        parents: "interface {{ item }}"
+        lines:
+          - ip nat inside
+      loop:
+        - GigabitEthernet2
+        - GigabitEthernet3
+        - GigabitEthernet4
+
+    - name: Créer une ACL pour le NAT dynamique
+      ios_config:
+        lines:
+          - access-list 1 permit 192.168.2.0 0.0.0.255
+          - access-list 1 permit 192.168.3.0 0.0.0.255
+          - access-list 1 permit 192.168.4.0 0.0.0.255
+
+
+    - name: Activer le NAT dynamique sur l'interface WAN
+      ios_config:
+        lines:
+          - ip nat inside source list 1 interface GigabitEthernet1 overload
+    - name: Configurer redirection du port 80 pour le serveur web
+      cisco.ios.ios_config:
+        parents: ip nat inside source static tcp 192.168.2.2 80 interface GigabitEthernet1 80
+      become: yes
+
+    - name: Configurer redirection du port 2222 pour le serveur SSH
+      cisco.ios.ios_config:
+        parents: ip nat inside source static tcp 192.168.3.2 22 interface GigabitEthernet1 2222
+      become: yes

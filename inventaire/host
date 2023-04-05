@@ -2,5 +2,4 @@
 web  ansible_host=192.168.103.229 
 
 [routeurs]
-csr1000 ansible_host=161.3.64.204
-
+csr1000 ansible_host=192.168.103.208

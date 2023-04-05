@@ -16,7 +16,22 @@
       # Register permet de récupérer le résultat de la commande
       # et de le mettre dans la variable config
       register: config
-
+   
+    - name: Exemple de boucle
+      # Le module debug permet d'écrire dans la console le contenu de msg
+      debug:
+        # Le contenu entre double accolade sera évalué par python et remplacé par le résultat
+        # ici, il s'agit de la variable item dont le contenu remplacera {{ item }}
+        msg: "coucou {{ item }}"
+      # On rajoute loop au même niveau que le module,
+      # le module sera éxécuté pour chaque élément indiqué en dessous
+      loop:
+        # 1ère itération : item = marc
+        - marc
+        # 2ème itération : item = sophie 
+        - sophie
+        # 3ème itération : item = pierre
+        - pierre
     - name: Enregistre la configuration
       # Module pour copier des fichiers
       # https://docs.ansible.com/ansible/latest/collections/ansible/builtin/copy_module.html
